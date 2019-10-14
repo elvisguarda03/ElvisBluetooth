@@ -33,6 +33,10 @@ namespace ConnectTest
                 {
                     _logger.LogInformation($"New device: {device}");
                 };
+                watcher.DeviceNameChanged += (device) =>
+                {  
+                    _logger.LogInformation($"Device name changed: {device}");
+                };
                 watcher.StartListening();
 
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);

@@ -38,6 +38,7 @@ namespace BluetoothConnectTest
         public event Action StartedListening = () => { };
         public event Action StoppedListening = () => { };
         public event Action<DnaBluetoothLEDevice> NewDeviceDiscovered = (device) => { };
+        public event Action<DnaBluetoothLEDevice> DeviceNameChanged = (device) => { };
         public event Action<DnaBluetoothLEDevice> DeviceDiscovered = (device) => { };
         #endregion
 
@@ -65,10 +66,18 @@ namespace BluetoothConnectTest
 
             var newDiscovered = !mDiscoveredDevices.ContainsKey(args.BluetoothAddress);
 
+            var nameChanged = 
+                !newDiscovered && 
+                !string.IsNullOrEmpty(args.Advertisement.LocalName) &&
+                mDiscoveredDevices[args.BluetoothAddress].Name != args.Advertisement.LocalName;
             lock (mThreadLock)
             {
                 //Get the name of the device
                 var name = args.Advertisement.LocalName;
+
+                if (!string.IsNullOrEmpty(name) && !newDiscovered)
+                    name = mDiscoveredDevices[args.BluetoothAddress].Name;
+
                 device = new DnaBluetoothLEDevice
                 (
                     address: args.BluetoothAddress,
@@ -82,7 +91,9 @@ namespace BluetoothConnectTest
             }
 
             DeviceDiscovered(device);
-
+            if (nameChanged)
+                DeviceNameChanged(device);
+            
             if (newDiscovered)
                 NewDeviceDiscovered(device);
         }
@@ -92,6 +103,11 @@ namespace BluetoothConnectTest
             if (!Listening)
                 return;
             mWatcher.Stop();
+            
+            lock (mThreadLock)
+            {
+                mDiscoveredDevices.Clear();
+            }
         }
     }
 }
